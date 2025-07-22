@@ -6,6 +6,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.background
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -18,17 +19,20 @@ import com.example.retrotodolistv2.data.TaskEntity
 @Composable
 fun TaskListScreen(
     tasks: List<TaskEntity>,
-    onAddTask: (String) -> Unit,
+    onAddTask: (String, Boolean) -> Unit,
     onToggleDone: (TaskEntity) -> Unit,
     onDeleteTask: (TaskEntity) -> Unit,
+    onTogglePriority: (TaskEntity) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var newTaskTitle by remember { mutableStateOf("") }
+    var isHighPriority by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(16.dp)
+            .background(MaterialTheme.colorScheme.background)
     ) {
 
         // Input field + Add button
@@ -42,8 +46,9 @@ fun TaskListScreen(
                 keyboardActions = KeyboardActions(
                     onDone = {
                         if (newTaskTitle.isNotBlank()) {
-                            onAddTask(newTaskTitle)
+                            onAddTask(newTaskTitle, isHighPriority)
                             newTaskTitle = ""
+                            isHighPriority = false
                         }
                     }
                 )
@@ -51,12 +56,20 @@ fun TaskListScreen(
             Spacer(modifier = Modifier.width(8.dp))
             Button(onClick = {
                 if (newTaskTitle.isNotBlank()) {
-                    onAddTask(newTaskTitle)
+                    onAddTask(newTaskTitle, isHighPriority)
                     newTaskTitle = ""
+                    isHighPriority = false
                 }
             }) {
                 Text("Add")
             }
+        }
+        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            Checkbox(
+                checked = isHighPriority,
+                onCheckedChange = { isHighPriority = it }
+            )
+            Text("High Priority")
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -73,11 +86,29 @@ fun TaskListScreen(
                     ),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = task.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = if (task.isDone) Color.Gray else Color.Unspecified
-                )
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Text(
+                        text = if (task.isHighPriority) "⭐" else "☆",
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .clickable { onTogglePriority(task) },
+                        color = MaterialTheme.colorScheme.onBackground,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        text = task.title,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    if (task.isHighPriority) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "High Priority",
+                            color = MaterialTheme.colorScheme.onBackground,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
+                }
                 Checkbox(
                     checked = task.isDone,
                     onCheckedChange = { onToggleDone(task) }

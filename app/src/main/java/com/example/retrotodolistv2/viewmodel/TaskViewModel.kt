@@ -9,7 +9,8 @@ class TaskViewModel(private val repository: TaskRepository) : ViewModel() {
 
     val allTasks: LiveData<List<TaskEntity>> = repository.allTasks.asLiveData()
 
-    fun insert(task: TaskEntity) = viewModelScope.launch {
+    fun insert(title: String, isHighPriority: Boolean) = viewModelScope.launch {
+        val task = TaskEntity(title = title, isHighPriority = isHighPriority)
         repository.insert(task)
     }
 
@@ -19,6 +20,10 @@ class TaskViewModel(private val repository: TaskRepository) : ViewModel() {
 
     fun update(task: TaskEntity) = viewModelScope.launch {
         repository.update(task)
+    }
+
+    fun togglePriority(task: TaskEntity) = viewModelScope.launch {
+        repository.update(task.copy(isHighPriority = !task.isHighPriority))
     }
 }
 

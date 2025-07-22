@@ -46,14 +46,17 @@ class MainActivity : ComponentActivity() {
                     // 📋 Compose UI – hlavná obrazovka s úlohami
                     TaskListScreen(
                         tasks = tasks,
-                        onAddTask = { title ->
-                            viewModel.insert(TaskEntity(title = title))
+                        onAddTask = { title, isHighPriority ->
+                            viewModel.insert(title, isHighPriority)
                         },
                         onToggleDone = { task ->
                             viewModel.update(task.copy(isDone = !task.isDone))
                         },
                         onDeleteTask = { task ->
                             viewModel.delete(task)
+                        },
+                        onTogglePriority = { task ->
+                            viewModel.togglePriority(task)
                         },
                         modifier = Modifier.padding(innerPadding)
                     )
