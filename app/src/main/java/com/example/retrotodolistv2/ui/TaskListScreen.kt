@@ -10,10 +10,12 @@ import androidx.compose.foundation.background
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.example.retrotodolistv2.data.TaskEntity
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.text.style.TextDecoration
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -95,10 +97,17 @@ fun TaskListScreen(
                         color = MaterialTheme.colorScheme.onBackground,
                         style = MaterialTheme.typography.bodyLarge
                     )
+                    // Animate alpha and strikethrough for task title
+                    val alpha by animateFloatAsState(
+                        targetValue = if (task.isDone) 0.4f else 1f,
+                        label = "doneAlpha"
+                    )
+                    val textDecoration = if (task.isDone) TextDecoration.LineThrough else TextDecoration.None
                     Text(
                         text = task.title,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onBackground
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = alpha),
+                        textDecoration = textDecoration
                     )
                     if (task.isHighPriority) {
                         Spacer(modifier = Modifier.width(8.dp))
