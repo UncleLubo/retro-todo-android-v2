@@ -16,6 +16,13 @@ import com.example.retrotodolistv2.data.TaskEntity
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -77,51 +84,64 @@ fun TaskListScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         // Task list
-        tasks.forEach { task ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp)
-                    .combinedClickable(
-                        onClick = { onToggleDone(task) },
-                        onLongClick = { onDeleteTask(task) }
-                    ),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    Text(
-                        text = if (task.isHighPriority) "⭐" else "☆",
+        LazyColumn {
+            items(tasks, key = { it.id }) { task ->
+
+                val visibleState = remember {
+                    MutableTransitionState(false).apply { targetState = true }
+                }
+
+                AnimatedVisibility(
+                    visibleState = visibleState,
+                    enter = fadeIn(animationSpec = tween(300)),
+                    exit  = fadeOut(animationSpec = tween(300))
+                ) {
+                    Row(
                         modifier = Modifier
-                            .padding(end = 8.dp)
-                            .clickable { onTogglePriority(task) },
-                        color = MaterialTheme.colorScheme.onBackground,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    // Animate alpha and strikethrough for task title
-                    val alpha by animateFloatAsState(
-                        targetValue = if (task.isDone) 0.4f else 1f,
-                        label = "doneAlpha"
-                    )
-                    val textDecoration = if (task.isDone) TextDecoration.LineThrough else TextDecoration.None
-                    Text(
-                        text = task.title,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = alpha),
-                        textDecoration = textDecoration
-                    )
-                    if (task.isHighPriority) {
-                        Spacer(modifier = Modifier.width(8.dp))
+                            .fillMaxWidth()
+                            .combinedClickable(
+                                onClick     = { onToggleDone(task) },
+                                onLongClick = { visibleState.targetState = false }
+                            )
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+
+                        // priority star
                         Text(
-                            text = "High Priority",
-                            color = MaterialTheme.colorScheme.onBackground,
-                            style = MaterialTheme.typography.labelSmall
+                            text = if (task.isHighPriority) "⭐" else "☆",
+                            modifier = Modifier
+                                .padding(end = 8.dp)
+                                .clickable { onTogglePriority(task) }
+                        )
+
+                        // title with fade / strikethrough (keeps existing animation)
+                        val alpha by animateFloatAsState(
+                            targetValue = if (task.isDone) 0.4f else 1f,
+                            label = "doneAlpha"
+                        )
+                        val deco = if (task.isDone) TextDecoration.LineThrough else TextDecoration.None
+                        Text(
+                            text           = task.title,
+                            style          = MaterialTheme.typography.bodyLarge,
+                            color          = MaterialTheme.colorScheme.onBackground.copy(alpha = alpha),
+                            textDecoration = deco
+                        )
+
+                        // checkbox
+                        Checkbox(
+                            checked          = task.isDone,
+                            onCheckedChange  = { onToggleDone(task) }
                         )
                     }
                 }
-                Checkbox(
-                    checked = task.isDone,
-                    onCheckedChange = { onToggleDone(task) }
-                )
+
+                // after fade-out finishes, delete from DB
+                LaunchedEffect(visibleState.currentState) {
+                    if (!visibleState.currentState && visibleState.isIdle) {
+                        onDeleteTask(task)
+                    }
+                }
             }
         }
     }
