@@ -14,10 +14,14 @@ import com.example.retrotodolistv2.data.AppDatabase
 import com.example.retrotodolistv2.data.TaskEntity
 import com.example.retrotodolistv2.data.TaskRepository
 import com.example.retrotodolistv2.ui.TaskListScreen
+import com.example.retrotodolistv2.ui.AddTaskScreen
 import com.example.retrotodolistv2.ui.theme.RetroTodoListV2Theme
 import com.example.retrotodolistv2.viewmodel.TaskViewModel
 import com.example.retrotodolistv2.viewmodel.TaskViewModelFactory
 import androidx.core.view.WindowCompat
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 
 class MainActivity : ComponentActivity() {
 
@@ -38,29 +42,34 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             RetroTodoListV2Theme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                val navController = rememberNavController()
 
-                    // 🔁 Sledovanie zoznamu úloh cez LiveData
-                    val tasks by viewModel.allTasks.observeAsState(emptyList())
-
-                    // 📋 Compose UI – hlavná obrazovka s úlohami
-                    TaskListScreen(
-                        tasks = tasks,
-                        onAddTask = { title, isHighPriority ->
-                            viewModel.insert(title, isHighPriority)
-                        },
-                        onToggleDone = { task ->
-                            viewModel.update(task.copy(isDone = !task.isDone))
-                        },
-                        onDeleteTask = { task ->
-                            viewModel.delete(task)
-                        },
-                        onTogglePriority = { task ->
-                            viewModel.togglePriority(task)
-                        },
-                        modifier = Modifier.padding(innerPadding)
-                    )
-
+                NavHost(
+                    navController = navController,
+                    startDestination = "list"
+                ) {
+                    composable("list") {
+                        val tasks by viewModel.allTasks.observeAsState(emptyList())
+                        TaskListScreen(
+                            tasks = tasks,
+                            onToggleDone = { task -> viewModel.update(task.copy(isDone = !task.isDone)) },
+                            onDeleteTask = { task -> viewModel.delete(task) },
+                            onTogglePriority = { task -> viewModel.togglePriority(task) },
+                            onNavigateToAdd = { navController.navigate("add") },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                    composable("add") {
+                        AddTaskScreen(
+                            onSave = { title ->
+                                viewModel.insert(title, false) // false for isHighPriority
+                                navController.popBackStack() // go back to list
+                            },
+                            onCancel = {
+                                navController.popBackStack()
+                            }
+                        )
+                    }
                 }
             }
         }

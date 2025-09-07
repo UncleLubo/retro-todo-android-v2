@@ -23,126 +23,156 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TaskListScreen(
     tasks: List<TaskEntity>,
-    onAddTask: (String, Boolean) -> Unit,
     onToggleDone: (TaskEntity) -> Unit,
     onDeleteTask: (TaskEntity) -> Unit,
     onTogglePriority: (TaskEntity) -> Unit,
+    onNavigateToAdd: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var newTaskTitle by remember { mutableStateOf("") }
-    var isHighPriority by remember { mutableStateOf(false) }
+    // Stavové premenné pre dialógové okno
+    var taskToDelete by remember { mutableStateOf<TaskEntity?>(null) }
+    var showDialog by remember { mutableStateOf(false) }
+    var taskToAnimate by remember { mutableStateOf<TaskEntity?>(null) }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .background(MaterialTheme.colorScheme.background)
-    ) {
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(onClick = onNavigateToAdd) {
+                Icon(Icons.Default.Add, contentDescription = "Add Task")
+            }
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp)
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            // Tasks heading
+            Text(
+                text = "Tasks",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+            
+            // Task list
+            LazyColumn {
+                items(tasks, key = { it.id }) { task ->
 
-        // Input field + Add button
-        Row(modifier = Modifier.fillMaxWidth()) {
-            TextField(
-                value = newTaskTitle,
-                onValueChange = { newTaskTitle = it },
-                placeholder = { Text("Enter task") },
-                modifier = Modifier.weight(1f),
-                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        if (newTaskTitle.isNotBlank()) {
-                            onAddTask(newTaskTitle, isHighPriority)
-                            newTaskTitle = ""
-                            isHighPriority = false
+                    val visibleState = remember {
+                        MutableTransitionState(false).apply { targetState = true }
+                    }
+
+                    // Spustenie animácie zmazania
+                    LaunchedEffect(taskToAnimate) {
+                        if (taskToAnimate?.id == task.id) {
+                            visibleState.targetState = false
+                            taskToAnimate = null
                         }
                     }
-                )
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Button(onClick = {
-                if (newTaskTitle.isNotBlank()) {
-                    onAddTask(newTaskTitle, isHighPriority)
-                    newTaskTitle = ""
-                    isHighPriority = false
-                }
-            }) {
-                Text("Add")
-            }
-        }
-        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-            Checkbox(
-                checked = isHighPriority,
-                onCheckedChange = { isHighPriority = it }
-            )
-            Text("High Priority")
-        }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Task list
-        LazyColumn {
-            items(tasks, key = { it.id }) { task ->
-
-                val visibleState = remember {
-                    MutableTransitionState(false).apply { targetState = true }
-                }
-
-                AnimatedVisibility(
-                    visibleState = visibleState,
-                    enter = fadeIn(animationSpec = tween(300)),
-                    exit  = fadeOut(animationSpec = tween(300))
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .combinedClickable(
-                                onClick     = { onToggleDone(task) },
-                                onLongClick = { visibleState.targetState = false }
-                            )
-                            .padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                    AnimatedVisibility(
+                        visibleState = visibleState,
+                        enter = fadeIn(animationSpec = tween(300)),
+                        exit = fadeOut(animationSpec = tween(300))
                     ) {
-
-                        // priority star
-                        Text(
-                            text = if (task.isHighPriority) "⭐" else "☆",
+                        Row(
                             modifier = Modifier
-                                .padding(end = 8.dp)
-                                .clickable { onTogglePriority(task) }
-                        )
+                                .fillMaxWidth()
+                                .combinedClickable(
+                                    onClick = { onToggleDone(task) },
+                                    onLongClick = {
+                                        taskToDelete = task
+                                        showDialog = true
+                                    }
+                                )
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
 
-                        // title with fade / strikethrough (keeps existing animation)
-                        val alpha by animateFloatAsState(
-                            targetValue = if (task.isDone) 0.4f else 1f,
-                            label = "doneAlpha"
-                        )
-                        val deco = if (task.isDone) TextDecoration.LineThrough else TextDecoration.None
-                        Text(
-                            text           = task.title,
-                            style          = MaterialTheme.typography.bodyLarge,
-                            color          = MaterialTheme.colorScheme.onBackground.copy(alpha = alpha),
-                            textDecoration = deco
-                        )
+                            // priority star
+                            Text(
+                                text = if (task.isHighPriority) "⭐" else "☆",
+                                modifier = Modifier
+                                    .padding(end = 8.dp)
+                                    .clickable { onTogglePriority(task) }
+                            )
 
-                        // checkbox
-                        Checkbox(
-                            checked          = task.isDone,
-                            onCheckedChange  = { onToggleDone(task) }
-                        )
+                            // title with fade / strikethrough (keeps existing animation)
+                            val alpha by animateFloatAsState(
+                                targetValue = if (task.isDone) 0.4f else 1f,
+                                label = "doneAlpha"
+                            )
+                            val deco =
+                                if (task.isDone) TextDecoration.LineThrough else TextDecoration.None
+                            Text(
+                                text = task.title,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = alpha),
+                                textDecoration = deco
+                            )
+
+                            // checkbox
+                            Checkbox(
+                                checked = task.isDone,
+                                onCheckedChange = { onToggleDone(task) }
+                            )
+                        }
                     }
-                }
 
-                // after fade-out finishes, delete from DB
-                LaunchedEffect(visibleState.currentState) {
-                    if (!visibleState.currentState && visibleState.isIdle) {
-                        onDeleteTask(task)
+                    // after fade-out finishes, delete from DB
+                    LaunchedEffect(visibleState.currentState) {
+                        if (!visibleState.currentState && visibleState.isIdle) {
+                            onDeleteTask(task)
+                        }
                     }
                 }
             }
+        }
+
+        // Dialógové okno na potvrdenie zmazania
+        if (showDialog && taskToDelete != null) {
+            AlertDialog(
+                onDismissRequest = {
+                    showDialog = false
+                    taskToDelete = null
+                },
+                title = { Text("Potvrdenie zmazania") },
+                text = { Text("Naozaj chcete zmazať túto úlohu?") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            taskToDelete?.let { task ->
+                                // Spustíme animáciu zmazania
+                                taskToAnimate = task
+                            }
+                            showDialog = false
+                            taskToDelete = null
+                        }
+                    ) {
+                        Text("Áno")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            showDialog = false
+                            taskToDelete = null
+                        }
+                    ) {
+                        Text("Nie")
+                    }
+                }
+            )
         }
     }
-} 
+}
