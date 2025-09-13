@@ -1,32 +1,27 @@
 package com.example.retrotodolistv2.ui
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.background
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.unit.dp
-import com.example.retrotodolistv2.data.TaskEntity
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.dp
+import com.example.retrotodolistv2.data.TaskEntity
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -38,15 +33,30 @@ fun TaskListScreen(
     onNavigateToAdd: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Stavové premenné pre dialógové okno
     var taskToDelete by remember { mutableStateOf<TaskEntity?>(null) }
     var showDialog by remember { mutableStateOf(false) }
     var taskToAnimate by remember { mutableStateOf<TaskEntity?>(null) }
 
     Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(onClick = onNavigateToAdd) {
-                Icon(Icons.Default.Add, contentDescription = "Add Task")
+        bottomBar = {
+            BottomAppBar(
+                containerColor = MaterialTheme.colorScheme.background,
+                contentPadding = PaddingValues(0.dp)
+            ) {
+                Button(
+                    onClick = onNavigateToAdd,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RectangleShape,
+                    border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.background,
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("[ Pridať novú úlohu ]")
+                }
             }
         }
     ) { innerPadding ->
@@ -57,22 +67,18 @@ fun TaskListScreen(
                 .padding(16.dp)
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            // Tasks heading
             Text(
                 text = "Tasks",
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
-            
-            // Task list
+
             LazyColumn {
                 items(tasks, key = { it.id }) { task ->
-
                     val visibleState = remember {
                         MutableTransitionState(false).apply { targetState = true }
                     }
 
-                    // Spustenie animácie zmazania
                     LaunchedEffect(taskToAnimate) {
                         if (taskToAnimate?.id == task.id) {
                             visibleState.targetState = false
@@ -95,41 +101,49 @@ fun TaskListScreen(
                                         showDialog = true
                                     }
                                 )
-                                .padding(vertical = 4.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                                .padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
+                            Row(
+                                modifier = Modifier.weight(1f).padding(end = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = if (task.isHighPriority) "⭐" else "☆",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    modifier = Modifier
+                                        .padding(end = 8.dp)
+                                        .clickable { onTogglePriority(task) }
+                                )
 
-                            // priority star
-                            Text(
-                                text = if (task.isHighPriority) "⭐" else "☆",
-                                modifier = Modifier
-                                    .padding(end = 8.dp)
-                                    .clickable { onTogglePriority(task) }
-                            )
+                                val alpha by animateFloatAsState(
+                                    targetValue = if (task.isDone) 0.4f else 1f,
+                                    label = "doneAlpha"
+                                )
+                                val titleColor = if (task.isHighPriority) {
+                                    MaterialTheme.colorScheme.secondary // Farba pre vysokú prioritu
+                                } else {
+                                    MaterialTheme.colorScheme.onBackground.copy(alpha = alpha) // Pôvodná farba
+                                }
+                                val deco =
+                                    if (task.isDone) TextDecoration.LineThrough else TextDecoration.None
+                                Text(
+                                    text = task.title,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = titleColor, // Aplikovaná dynamická farba
+                                    textDecoration = deco
+                                )
+                            }
 
-                            // title with fade / strikethrough (keeps existing animation)
-                            val alpha by animateFloatAsState(
-                                targetValue = if (task.isDone) 0.4f else 1f,
-                                label = "doneAlpha"
-                            )
-                            val deco =
-                                if (task.isDone) TextDecoration.LineThrough else TextDecoration.None
                             Text(
-                                text = task.title,
+                                text = if (task.isDone) "[x]" else "[ ]",
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = alpha),
-                                textDecoration = deco
-                            )
-
-                            // checkbox
-                            Checkbox(
-                                checked = task.isDone,
-                                onCheckedChange = { onToggleDone(task) }
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
 
-                    // after fade-out finishes, delete from DB
                     LaunchedEffect(visibleState.currentState) {
                         if (!visibleState.currentState && visibleState.isIdle) {
                             onDeleteTask(task)
@@ -139,7 +153,6 @@ fun TaskListScreen(
             }
         }
 
-        // Dialógové okno na potvrdenie zmazania
         if (showDialog && taskToDelete != null) {
             AlertDialog(
                 onDismissRequest = {
@@ -152,7 +165,6 @@ fun TaskListScreen(
                     TextButton(
                         onClick = {
                             taskToDelete?.let { task ->
-                                // Spustíme animáciu zmazania
                                 taskToAnimate = task
                             }
                             showDialog = false

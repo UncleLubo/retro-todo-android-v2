@@ -9,8 +9,12 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.background // Import for background
+import androidx.compose.ui.graphics.Color // Pridaný import
+import androidx.compose.ui.graphics.RectangleShape // Pridaný import
+import androidx.compose.foundation.border // Pridaný import
+import androidx.compose.foundation.BorderStroke // Pridaný import
 
-@OptIn(ExperimentalMaterial3Api::class) // Added for Scaffold
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddTaskScreen(
     onSave: (String) -> Unit,
@@ -18,17 +22,17 @@ fun AddTaskScreen(
 ) {
     var title by remember { mutableStateOf("") }
 
-    Scaffold { innerPadding -> // Added Scaffold
+    Scaffold { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding) // Added innerPadding from Scaffold
-                .background(MaterialTheme.colorScheme.background) // Added background color
-                .padding(16.dp), // Kept existing padding
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(innerPadding)
+                .background(MaterialTheme.colorScheme.background)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp) // Mierne zväčšené pre lepší vzhľad
         ) {
             Text(
-                text = "Add Task",
+                text = "Add Task", // Môžeš zvážiť zmenu na "[ Add Task ]" alebo podobne pre retro konzistenciu
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
@@ -38,24 +42,57 @@ fun AddTaskScreen(
                 onValueChange = { title = it },
                 placeholder = { Text("Task title") },
                 singleLine = true,
+                shape = RectangleShape, // Pridaný parameter
+                colors = TextFieldDefaults.colors( // Pridaný parameter
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    cursorColor = MaterialTheme.colorScheme.primary,
+                    focusedContainerColor = MaterialTheme.colorScheme.background,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.background,
+                    disabledContainerColor = MaterialTheme.colorScheme.background // Explicitne pre disabled stav
+                ),
                 keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(
                     onDone = {
                         if (title.isNotBlank()) onSave(title)
                     }
                 ),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(2.dp, MaterialTheme.colorScheme.onBackground) // Pridaný border
             )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(), // Aby sa tlačidlá roztiahli
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 Button(
                     onClick = {
                         if (title.isNotBlank()) onSave(title)
                     },
-                    enabled = title.isNotBlank()
-                ) { Text("Save") }
+                    enabled = title.isNotBlank(),
+                    shape = RectangleShape, // Pridaný parameter
+                    border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary), // Pridaný parameter
+                    colors = ButtonDefaults.buttonColors( // Pridaný parameter
+                        containerColor = MaterialTheme.colorScheme.background,
+                        contentColor = MaterialTheme.colorScheme.primary,
+                        disabledContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.5f), // Vizuálne odlíšenie disabled
+                        disabledContentColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                    ),
+                    modifier = Modifier.weight(1f) // Aby tlačidlá mali rovnakú šírku
+                ) { Text("Add") } // Môžeš zvážiť "[ Save ]"
 
-                OutlinedButton(onClick = onCancel) { Text("Cancel") }
+                // OutlinedButton zmenený na Button
+                Button(
+                    onClick = onCancel,
+                    shape = RectangleShape, // Pridaný parameter
+                    border = BorderStroke(2.dp, MaterialTheme.colorScheme.onBackground), // Pridaný parameter
+                    colors = ButtonDefaults.buttonColors( // Pridaný parameter
+                        containerColor = MaterialTheme.colorScheme.background,
+                        contentColor = MaterialTheme.colorScheme.onBackground
+                    ),
+                    modifier = Modifier.weight(1f) // Aby tlačidlá mali rovnakú šírku
+                ) { Text("Cancel") } // Môžeš zvážiť "[ Cancel ]"
             }
         }
     }
