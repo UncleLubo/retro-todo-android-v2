@@ -55,7 +55,7 @@ fun TaskListScreen(
                         contentColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
-                    Text("[ Pridať novú úlohu ]")
+                    Text("Add Task") // Zmenený text tlačidla
                 }
             }
         }

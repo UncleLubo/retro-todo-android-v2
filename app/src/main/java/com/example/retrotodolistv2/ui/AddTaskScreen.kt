@@ -39,7 +39,11 @@ fun AddTaskScreen(
 
             TextField(
                 value = title,
-                onValueChange = { title = it },
+                onValueChange = { newText ->
+                    if (newText.length <= 25) {
+                        title = newText.filter { it != '\n' }
+                    }
+                },
                 placeholder = { Text("Task title") },
                 singleLine = true,
                 shape = RectangleShape, // Pridaný parameter
@@ -80,7 +84,7 @@ fun AddTaskScreen(
                         disabledContentColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
                     ),
                     modifier = Modifier.weight(1f) // Aby tlačidlá mali rovnakú šírku
-                ) { Text("Add") } // Môžeš zvážiť "[ Save ]"
+                ) { Text("Add") } // Text tlačidla bol zmenený z "Save" na "Add" v predchádzajúcom kroku, ponechávam "Add"
 
                 // OutlinedButton zmenený na Button
                 Button(
