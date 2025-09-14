@@ -82,7 +82,6 @@ fun TaskListScreen(
                     LaunchedEffect(taskToAnimate) {
                         if (taskToAnimate?.id == task.id) {
                             visibleState.targetState = false
-                            taskToAnimate = null
                         }
                     }
 
@@ -96,7 +95,7 @@ fun TaskListScreen(
                                 .fillMaxWidth()
                                 .combinedClickable(
                                     onClick = { onToggleDone(task) },
-                                    onLongClick = {
+                                    onDoubleClick = { // Zmenené z onLongClick
                                         taskToDelete = task
                                         showDialog = true
                                     }
@@ -145,8 +144,9 @@ fun TaskListScreen(
                     }
 
                     LaunchedEffect(visibleState.currentState) {
-                        if (!visibleState.currentState && visibleState.isIdle) {
+                        if (!visibleState.currentState && visibleState.isIdle && taskToAnimate?.id == task.id) {
                             onDeleteTask(task)
+                            taskToAnimate = null // Reset taskToAnimate po dokončení animácie a zmazaní
                         }
                     }
                 }
@@ -164,8 +164,8 @@ fun TaskListScreen(
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            taskToDelete?.let { task ->
-                                taskToAnimate = task
+                            taskToDelete?.let { taskToConfirm ->
+                                taskToAnimate = taskToConfirm // Nastaví úlohu na animáciu a následné zmazanie
                             }
                             showDialog = false
                             taskToDelete = null
