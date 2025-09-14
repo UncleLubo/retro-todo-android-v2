@@ -56,6 +56,7 @@ class MainActivity : ComponentActivity() {
                             onDeleteTask = { task -> viewModel.delete(task) },
                             onTogglePriority = { task -> viewModel.togglePriority(task) },
                             onNavigateToAdd = { navController.navigate("add") },
+                            onUpdateTask = { task -> viewModel.update(task) },
                             modifier = Modifier.fillMaxSize()
                         )
                     }
