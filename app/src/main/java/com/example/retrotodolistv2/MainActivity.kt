@@ -50,6 +50,11 @@ class MainActivity : ComponentActivity() {
                 ) {
                     composable("list") {
                         val tasks by viewModel.allTasks.observeAsState(emptyList())
+                        val editingTaskId by viewModel.editingTaskId.observeAsState(null)
+                        val editingText by viewModel.editingText.observeAsState("")
+                        val originalTaskTitle by viewModel.originalTaskTitle.observeAsState("")
+                        val isEditing = viewModel.isEditing
+                        
                         TaskListScreen(
                             tasks = tasks,
                             onToggleDone = { task -> viewModel.update(task.copy(isDone = !task.isDone)) },
@@ -57,6 +62,14 @@ class MainActivity : ComponentActivity() {
                             onTogglePriority = { task -> viewModel.togglePriority(task) },
                             onNavigateToAdd = { navController.navigate("add") },
                             onUpdateTask = { task -> viewModel.update(task) },
+                            editingTaskId = editingTaskId,
+                            editingText = editingText,
+                            originalTaskTitle = originalTaskTitle,
+                            isEditing = isEditing,
+                            onStartEdit = { taskId, taskTitle -> viewModel.startEdit(taskId, taskTitle) },
+                            onUpdateEditingText = { text -> viewModel.updateEditingText(text) },
+                            onConfirmEdit = { viewModel.confirmEdit() },
+                            onCancelEdit = { viewModel.cancelEdit() },
                             modifier = Modifier.fillMaxSize()
                         )
                     }

@@ -35,6 +35,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.example.retrotodolistv2.data.TaskEntity
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -46,18 +48,24 @@ fun TaskListScreen(
     onTogglePriority: (TaskEntity) -> Unit,
     onNavigateToAdd: () -> Unit,
     onUpdateTask: (TaskEntity) -> Unit,
+    editingTaskId: Int?,
+    editingText: String,
+    originalTaskTitle: String,
+    isEditing: Boolean,
+    onStartEdit: (Int, String) -> Unit,
+    onUpdateEditingText: (String) -> Unit,
+    onConfirmEdit: () -> Unit,
+    onCancelEdit: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var taskToDelete by remember { mutableStateOf<TaskEntity?>(null) }
     var showDialog by remember { mutableStateOf(false) }
     var taskToAnimate by remember { mutableStateOf<TaskEntity?>(null) }
 
-    var editingTaskId by remember { mutableStateOf<Int?>(null) }
-    var editingTaskValue by remember { mutableStateOf(TextFieldValue("")) } // Zmenené na TextFieldValue
     val focusRequester = remember { FocusRequester() }
 
-    BackHandler(enabled = editingTaskId != null) {
-        editingTaskId = null
+    BackHandler(enabled = isEditing) {
+        onCancelEdit()
     }
 
     Scaffold(
@@ -66,19 +74,60 @@ fun TaskListScreen(
                 containerColor = MaterialTheme.colorScheme.background,
                 contentPadding = PaddingValues(0.dp)
             ) {
-                Button(
-                    onClick = onNavigateToAdd,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    shape = RectangleShape,
-                    border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.background,
-                        contentColor = MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    Text("Add Task")
+                if (!isEditing) {
+                    // Show Add Task button when not editing
+                    Button(
+                        onClick = onNavigateToAdd,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        shape = RectangleShape,
+                        border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.background,
+                            contentColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text("Add Task")
+                    }
+                } else {
+                    // Show Confirm/Cancel buttons when editing
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = onCancelEdit,
+                            modifier = Modifier
+                                .weight(1f)
+                                .semantics { contentDescription = "Cancel edit" },
+                            shape = RectangleShape,
+                            border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.background,
+                                contentColor = MaterialTheme.colorScheme.primary
+                            )
+                        ) {
+                            Text("Cancel")
+                        }
+                        Button(
+                            onClick = onConfirmEdit,
+                            enabled = !editingText.isNullOrBlank() && editingText != originalTaskTitle,
+                            modifier = Modifier
+                                .weight(1f)
+                                .semantics { contentDescription = "Confirm edit" },
+                            shape = RectangleShape,
+                            border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.background,
+                                contentColor = MaterialTheme.colorScheme.primary
+                            )
+                        ) {
+                            Text("Confirm")
+                        }
+                    }
                 }
             }
         }
@@ -133,17 +182,14 @@ fun TaskListScreen(
                                             .clickable(enabled = false) {}
                                     )
                                     BasicTextField(
-                                        value = editingTaskValue,
+                                        value = TextFieldValue(
+                                            text = editingText,
+                                            selection = TextRange(editingText.length)
+                                        ),
                                         onValueChange = { newValue ->
-                                            if (newValue.text.length <= 25) {
-                                                editingTaskValue = newValue.copy(text = newValue.text.filter { it != '\n' })
-                                            } else {
-                                                // Ak je text dlhší, orežeme ho a zachováme pozíciu kurzora (ak je to možné)
-                                                val newText = newValue.text.substring(0, 25)
-                                                editingTaskValue = TextFieldValue(
-                                                    text = newText,
-                                                    selection = TextRange(minOf(newValue.selection.start, 25), minOf(newValue.selection.end, 25))
-                                                )
+                                            val filteredText = newValue.text.filter { it != '\n' }
+                                            if (filteredText.length <= 25) {
+                                                onUpdateEditingText(filteredText)
                                             }
                                         },
                                         textStyle = TextStyle(
@@ -157,10 +203,9 @@ fun TaskListScreen(
                                         keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
                                         keyboardActions = KeyboardActions(
                                             onDone = {
-                                                if (editingTaskValue.text.isNotBlank()) {
-                                                    onUpdateTask(task.copy(title = editingTaskValue.text))
+                                                if (!editingText.isNullOrBlank() && editingText != originalTaskTitle) {
+                                                    onConfirmEdit()
                                                 }
-                                                editingTaskId = null
                                             }
                                         ),
                                         singleLine = true,
@@ -170,7 +215,7 @@ fun TaskListScreen(
                                             .focusRequester(focusRequester)
                                             .onKeyEvent {
                                                 if (it.key == Key.Escape) {
-                                                    editingTaskId = null
+                                                    onCancelEdit()
                                                     true
                                                 } else false
                                             }
@@ -183,8 +228,8 @@ fun TaskListScreen(
                                     modifier = Modifier.clickable(enabled = false) {}
                                 )
                             }
-                            LaunchedEffect(editingTaskId) { // Zmenené z Unit na editingTaskId
-                                if (editingTaskId == task.id) { // Požiadaj o focus len ak je to aktuálne editovaná úloha
+                            LaunchedEffect(editingTaskId) {
+                                if (editingTaskId == task.id) {
                                     focusRequester.requestFocus()
                                 }
                             }
@@ -199,11 +244,7 @@ fun TaskListScreen(
                                             showDialog = true
                                         },
                                         onLongClick = {
-                                            editingTaskId = task.id
-                                            editingTaskValue = TextFieldValue(
-                                                text = task.title,
-                                                selection = TextRange(task.title.length) // Kurzor na koniec
-                                            )
+                                            onStartEdit(task.id, task.title)
                                         }
                                     )
                                     .padding(vertical = 8.dp),
