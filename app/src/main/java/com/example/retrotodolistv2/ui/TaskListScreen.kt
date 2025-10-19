@@ -31,6 +31,8 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextDecoration
@@ -43,9 +45,8 @@ import com.example.retrotodolistv2.data.TaskEntity
 @Composable
 fun TaskListScreen(
     tasks: List<TaskEntity>,
-    onToggleDone: (TaskEntity) -> Unit,
+    onCycleTaskState: (TaskEntity) -> Unit,
     onDeleteTask: (TaskEntity) -> Unit,
-    onTogglePriority: (TaskEntity) -> Unit,
     onNavigateToAdd: () -> Unit,
     onUpdateTask: (TaskEntity) -> Unit,
     editingTaskId: Int?,
@@ -174,13 +175,6 @@ fun TaskListScreen(
                                     modifier = Modifier.weight(1f).padding(end = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(
-                                        text = if (task.isHighPriority) "⭐" else "☆",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        modifier = Modifier
-                                            .padding(end = 8.dp)
-                                            .clickable(enabled = false) {}
-                                    )
                                     BasicTextField(
                                         value = TextFieldValue(
                                             text = editingText,
@@ -222,7 +216,11 @@ fun TaskListScreen(
                                     )
                                 }
                                 Text(
-                                    text = if (task.isDone) "[x]" else "[ ]",
+                                    text = when {
+                                        task.isDone -> "[x]"
+                                        task.isHighPriority -> "[!]"
+                                        else -> "[ ]"
+                                    },
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.clickable(enabled = false) {}
@@ -238,7 +236,7 @@ fun TaskListScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .combinedClickable(
-                                        onClick = { onToggleDone(task) },
+                                        onClick = { onCycleTaskState(task) },
                                         onDoubleClick = {
                                             taskToDelete = task
                                             showDialog = true
@@ -255,33 +253,33 @@ fun TaskListScreen(
                                     modifier = Modifier.weight(1f).padding(end = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(
-                                        text = if (task.isHighPriority) "⭐" else "☆",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        modifier = Modifier
-                                            .padding(end = 8.dp)
-                                            .clickable { onTogglePriority(task) }
-                                    )
                                     val alpha by animateFloatAsState(
                                         targetValue = if (task.isDone) 0.4f else 1f,
                                         label = "doneAlpha"
                                     )
-                                    val titleColor = if (task.isHighPriority) {
-                                        MaterialTheme.colorScheme.secondary
+                                    val textStyle = if (task.isHighPriority && !task.isDone) {
+                                        MaterialTheme.typography.bodyLarge.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontStyle = FontStyle.Italic
+                                        )
                                     } else {
-                                        MaterialTheme.colorScheme.onBackground.copy(alpha = alpha)
+                                        MaterialTheme.typography.bodyLarge
                                     }
                                     val deco =
                                         if (task.isDone) TextDecoration.LineThrough else TextDecoration.None
                                     Text(
                                         text = task.title,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = titleColor,
+                                        style = textStyle,
+                                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = alpha),
                                         textDecoration = deco
                                     )
                                 }
                                 Text(
-                                    text = if (task.isDone) "[x]" else "[ ]",
+                                    text = when {
+                                        task.isDone -> "[x]"
+                                        task.isHighPriority -> "[!]"
+                                        else -> "[ ]"
+                                    },
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.primary
                                 )

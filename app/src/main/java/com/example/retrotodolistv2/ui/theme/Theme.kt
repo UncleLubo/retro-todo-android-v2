@@ -3,6 +3,7 @@ package com.example.retrotodolistv2.ui.theme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import com.example.retrotodolistv2.ui.theme.Typography
 
 private val RetroColorScheme = darkColorScheme(
     primary      = RetroGreen,

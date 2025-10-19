@@ -34,8 +34,25 @@ class TaskViewModel(private val repository: TaskRepository) : ViewModel() {
         repository.update(task)
     }
 
-    fun togglePriority(task: TaskEntity) = viewModelScope.launch {
-        repository.update(task.copy(isHighPriority = !task.isHighPriority))
+    fun cycleTaskState(task: TaskEntity) = viewModelScope.launch {
+        when {
+            // Stav: [ ] (isDone=false, isHighPriority=false) -> Prepnúť na [!]
+            !task.isDone && !task.isHighPriority -> {
+                repository.update(task.copy(isDone = false, isHighPriority = true))
+            }
+            // Stav: [!] (isDone=false, isHighPriority=true) -> Prepnúť na [x]
+            !task.isDone && task.isHighPriority -> {
+                repository.update(task.copy(isDone = true, isHighPriority = false))
+            }
+            // Stav: [x] (isDone=true) -> Prepnúť na [ ]
+            task.isDone -> {
+                repository.update(task.copy(isDone = false, isHighPriority = false))
+            }
+            // Záchranný prípad, ak by isDone=true a isHighPriority=true
+            else -> {
+                repository.update(task.copy(isDone = false, isHighPriority = false))
+            }
+        }
     }
 
     // Edit events
