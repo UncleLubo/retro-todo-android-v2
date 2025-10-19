@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
@@ -70,28 +71,26 @@ fun TaskListScreen(
     }
 
     Scaffold(
+        floatingActionButton = {
+            if (!isEditing) {
+                FloatingActionButton(
+                    onClick = onNavigateToAdd,
+                    shape = RectangleShape,
+                    containerColor = MaterialTheme.colorScheme.background,
+                    contentColor = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary), RectangleShape)
+                ) {
+                    Text("+", style = MaterialTheme.typography.headlineMedium)
+                }
+            }
+        },
+        floatingActionButtonPosition = FabPosition.End,
         bottomBar = {
-            BottomAppBar(
-                containerColor = MaterialTheme.colorScheme.background,
-                contentPadding = PaddingValues(0.dp)
-            ) {
-                if (!isEditing) {
-                    // Show Add Task button when not editing
-                    Button(
-                        onClick = onNavigateToAdd,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        shape = RectangleShape,
-                        border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.background,
-                            contentColor = MaterialTheme.colorScheme.primary
-                        )
-                    ) {
-                        Text("Add Task")
-                    }
-                } else {
+            if (isEditing) {
+                BottomAppBar(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    contentPadding = PaddingValues(0.dp)
+                ) {
                     // Show Confirm/Cancel buttons when editing
                     Row(
                         modifier = Modifier
